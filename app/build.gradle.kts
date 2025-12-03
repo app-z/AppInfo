@@ -13,6 +13,10 @@ android {
         version = release(36)
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.drweb.appinfo"
         minSdk = 24

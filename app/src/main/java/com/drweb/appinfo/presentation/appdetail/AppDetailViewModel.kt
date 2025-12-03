@@ -1,5 +1,6 @@
 package com.drweb.appinfo.presentation.appdetail
 
+import com.drweb.appinfo.BuildConfig
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
@@ -35,7 +36,8 @@ class AppDetailViewModel(
                 _state.update {
                     it.copy(
                         appInfo = data,
-                        isLoading = false
+                        isLoading = false,
+                        isOpenButtonEnable = packageName != BuildConfig.APPLICATION_ID
                     )
                 }
 
@@ -91,6 +93,7 @@ class AppDetailViewModel(
     override fun onCoroutineException(message: UiText) {
         _state.update {
             it.copy(
+                isLoading = false,
                 error = message
             )
         }

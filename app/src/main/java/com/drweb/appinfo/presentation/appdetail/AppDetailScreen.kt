@@ -64,6 +64,7 @@ fun AppDetailScreen(
 
             state.appInfo != null -> {
                 val appInfo = state.appInfo!!
+                val isOpenButtonEnable = state.isOpenButtonEnable
 
                 Column(
                     modifier = Modifier
@@ -127,15 +128,17 @@ fun AppDetailScreen(
                     }
 
                     // Кнопка открытия приложения
-                    Button(
-                        onClick = {
-                            context.openApp(appInfo.packageName)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Text("Открыть приложение")
+                    if (isOpenButtonEnable == true) {
+                        Button(
+                            onClick = {
+                                context.openApp(appInfo.packageName)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Text("Открыть приложение")
+                        }
                     }
                 }
             }

@@ -1,10 +1,10 @@
 package com.drweb.appinfo.presentation.applist
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
 import com.drweb.appinfo.presentation.applist.components.AppListState
 import com.drweb.appinfo.core.common.getErrorMessageOrUnknown
+import com.drweb.appinfo.presentation.component.BaseViewModel
+import com.drweb.appinfo.presentation.component.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class AppListViewModel(
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AppListState())
     val state: StateFlow<AppListState> = _state.asStateFlow()
@@ -24,7 +24,7 @@ class AppListViewModel(
     }
 
     fun loadApps() {
-        viewModelScope.launch {
+        defaultViewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             val result = getInstalledAppsUseCase()
@@ -50,4 +50,14 @@ class AppListViewModel(
             }
         }
     }
+
+    override fun onCoroutineException(message: UiText) {
+        _state.update {
+            it.copy(
+                isLoading = false,
+                error = message
+            )
+        }
+    }
+
 }
