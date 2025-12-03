@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.drweb.appinfo.R
 import com.drweb.appinfo.domain.model.AppInfo
@@ -32,41 +33,51 @@ fun AppListItem(
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = app.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = app.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Text(
+                text = app.packageName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Text(
-                    text = stringResource(
-                        R.string.version_title,
-                        app.versionName ?: app.versionCode.toString()
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = stringResource(
+                    R.string.version_title,
+                    app.versionName ?: app.versionCode.toString()
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
+
+}
+
+
+@Composable
+@Preview
+fun AppListItemPreview() {
+    AppListItem(
+        app = AppInfo(
+            name = "App 1",
+            packageName = "Package 111",
+            versionName = "",
+            versionCode = 9944L,
+            apkPath = "asdasdasdasd/asdasdasd",
+            checksum = ""
+        ), {}
+    )
 }
