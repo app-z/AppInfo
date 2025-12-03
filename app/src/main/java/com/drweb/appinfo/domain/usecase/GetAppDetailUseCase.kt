@@ -2,12 +2,13 @@ package com.drweb.appinfo.domain.usecase
 
 import com.drweb.appinfo.domain.model.AppInfo
 import com.drweb.appinfo.domain.repository.AppRepository
+import kotlinx.coroutines.flow.Flow
 
 
 class GetAppDetailUseCase(
     private val repository: AppRepository
 ) {
-    suspend operator fun invoke(packageName: String): Result<AppInfo> {
-        return repository.getAppDetail(packageName)
+    operator fun invoke(packageName: String): Flow<AppInfo> {
+        return repository.fetchAppDetail(packageName)
     }
 }

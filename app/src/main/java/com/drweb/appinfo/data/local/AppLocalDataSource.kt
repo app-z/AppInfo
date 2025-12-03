@@ -5,86 +5,94 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import com.drweb.appinfo.core.common.ChecksumUtils
 import com.drweb.appinfo.data.datasource.AppDataSource
 import com.drweb.appinfo.domain.model.AppInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class AppLocalDataSource(
     private val context: Context
 ) : AppDataSource {
 
-    override suspend fun getInstalledApps(): Result<List<AppInfo>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val packageManager = context.packageManager
-                val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+    private fun getInstalledApps(): Result<List<AppInfo>> =
+        try {
+            val packageManager = context.packageManager
+            val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
 
-                val appList = mutableListOf<AppInfo>()
+            val appList = mutableListOf<AppInfo>()
 
-                packages.forEach { applicationInfo ->
-                    try {
-                        if ((applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
-                            val packageInfo = packageManager.getPackageInfo(
-                                applicationInfo.packageName,
-                                PackageManager.GET_ACTIVITIES
-                            )
+            packages.forEach { applicationInfo ->
+                try {
+                    if ((applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
+                        val packageInfo = packageManager.getPackageInfo(
+                            applicationInfo.packageName,
+                            PackageManager.GET_ACTIVITIES
+                        )
 
-                            val versionCode = getVersionCode(packageInfo)
+                        val versionCode = getVersionCode(packageInfo)
 
-                            val appInfo = AppInfo(
-                                name = applicationInfo.loadLabel(packageManager).toString(),
-                                packageName = applicationInfo.packageName,
-                                versionName = packageInfo.versionName,
-                                versionCode = versionCode,
-                                apkPath = applicationInfo.sourceDir,
-                                checksum = "" // Рассчитывается по требованию
-                            )
+                        val appInfo = AppInfo(
+                            name = applicationInfo.loadLabel(packageManager).toString(),
+                            packageName = applicationInfo.packageName,
+                            versionName = packageInfo.versionName,
+                            versionCode = versionCode,
+                            apkPath = applicationInfo.sourceDir,
+                        )
 
-                            appList.add(appInfo)
-                        }
-                    } catch (e: Exception) {
-                        // Пропускаем приложения с ошибками
+                        appList.add(appInfo)
                     }
+                } catch (e: Exception) {
+                    // Пропускаем приложения с ошибками
                 }
-
-                // Сортируем по имени
-                appList.sortBy { it.name.lowercase() }
-                Result.success(appList)
-            } catch (ex: Exception) {
-                Result.failure(ex)
             }
+
+            // Сортируем по имени
+            appList.sortBy { it.name.lowercase() }
+            Result.success(appList)
+        } catch (ex: Exception) {
+            Result.failure(ex)
         }
-    }
 
-    override suspend fun getAppInfo(packageName: String): Result<AppInfo> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val packageManager = context.packageManager
-                val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-                val packageInfo =
-                    packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+    override fun fetchInstalledAppsFlow(): Flow<List<AppInfo>> = flow {
+        emit(getInstalledApps().getOrThrow())
+    }.flowOn(Dispatchers.IO)
 
-                val apkFile = File(applicationInfo.sourceDir)
-                val checksum = ChecksumUtils.calculateSHA256(apkFile)
+    override fun fetchAppInfo(packageName: String): Flow<AppInfo> = flow {
+        emit(getAppInfo(packageName = packageName).getOrThrow())
+    }.flowOn(Dispatchers.IO)
 
-                val versionCode = getVersionCode(packageInfo)
+    override fun getAppInfo(packageName: String): Result<AppInfo> =
+        try {
+            val packageManager = context.packageManager
+            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+            val packageInfo =
+                packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
 
-                val appInfo = AppInfo(
-                    name = applicationInfo.loadLabel(packageManager).toString(),
-                    packageName = applicationInfo.packageName,
-                    versionName = packageInfo.versionName,
-                    versionCode = versionCode,
-                    apkPath = applicationInfo.sourceDir,
-                    checksum = checksum
-                )
+            val versionCode = getVersionCode(packageInfo)
 
-                Result.success(appInfo)
-            } catch (ex: Exception) {
-                Result.failure(ex)
-            }
+            val appInfo = AppInfo(
+                name = applicationInfo.loadLabel(packageManager).toString(),
+                packageName = applicationInfo.packageName,
+                versionName = packageInfo.versionName,
+                versionCode = versionCode,
+                apkPath = applicationInfo.sourceDir,
+            )
+
+            Result.success(appInfo)
+        } catch (ex: Exception) {
+            Result.failure(ex)
+        }
+
+    override fun getAppName(packageName: String): String {
+        return try {
+            val packageManager = context.packageManager
+            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(applicationInfo).toString()
+        } catch (e: PackageManager.NameNotFoundException) {
+            packageName
         }
     }
 

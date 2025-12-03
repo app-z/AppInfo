@@ -1,99 +1,189 @@
 package com.drweb.appinfo.presentation.appdetail
 
+import com.drweb.appinfo.BuildConfig
+import com.drweb.appinfo.R
+import com.drweb.appinfo.core.common.Async
+import com.drweb.appinfo.core.common.WhileUiSubscribed
+import com.drweb.appinfo.domain.model.AppInfo
+import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
+import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
+import com.drweb.appinfo.presentation.appdetail.components.AppDetailEffect
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
-import com.drweb.appinfo.core.common.getErrorMessageOrUnknown
 import com.drweb.appinfo.presentation.component.BaseViewModel
 import com.drweb.appinfo.presentation.component.UiText
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.io.IOException
 
 
 class AppDetailViewModel(
     private val packageName: String,
     private val getAppDetailUseCase: GetAppDetailUseCase,
     private val calculateChecksumUseCase: CalculateChecksumUseCase,
+    private val observeAppInstallUseCase: ObserveAppInstallUseCase
 ) : BaseViewModel() {
 
-    private val _state = MutableStateFlow(AppDetailState())
-    val state: StateFlow<AppDetailState> = _state.asStateFlow()
+    private val _effect: MutableSharedFlow<AppDetailEffect> = MutableSharedFlow()
+    val effect = _effect.asSharedFlow()
+    private val _isLoading = MutableStateFlow(false)
+    private val _isOpenButtonEnable = packageName != BuildConfig.APPLICATION_ID
+
+    // SharedFlow для перезапуска (Из экрана с ошибкой)
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
 
     init {
-        loadAppDetail(packageName = packageName)
+        defaultViewModelScope.launch {
+            observeAppInstallUseCase()
+                .collect { event ->
+                    handleAppInstallEvent(event)
+                }
+        }
     }
 
-    fun loadAppDetail(packageName: String) {
-        defaultViewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _appDetail = _refreshTrigger
+        .onStart { emit(Unit) }
+        .flatMapLatest { loadAppDetail() }
+        .stateIn(
+            scope = defaultViewModelScope,
+            started = WhileUiSubscribed,
+            initialValue = Async.Loading
+        )
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun loadAppDetail(): Flow<Async<AppInfo>> = flow {
+        emit(Async.Loading)
+        try {
             val result = getAppDetailUseCase(packageName)
-            result.onSuccess { data ->
-                _state.update {
-                    it.copy(
-                        appInfo = data,
-                        isLoading = false
-                    )
-                }
+            result.collect { appInfo ->
+                emit(Async.Success(appInfo))
+                calculateChecksumSafely(appInfo)
+            }
+        } catch (e: Exception) {
+            handleAppDetailError(e)
+        }
+    }
 
-                // Рассчитываем контрольную сумму после загрузки данных
-                calculateChecksum(data.apkPath)
+    private suspend fun calculateChecksumSafely(appInfo: AppInfo) {
+        if (appInfo.apkPath.isEmpty()) return
+
+        try {
+            withContext(Dispatchers.IO) {
+                calculateChecksum(appInfo.apkPath)
+            }
+        } catch (e: Exception) {
+            // Логируем, но не прерываем основной поток
+            Timber.w("Failed to calculate checksum $e")
+        }
+    }
+
+    private fun handleAppDetailError(e: Exception): Async<AppInfo> {
+        return when (e) {
+            is CancellationException -> throw e
+            is IOException -> Async.Error(UiText.StringResource(R.string.network_error))
+            is SecurityException -> Async.Error(UiText.StringResource(R.string.permission_error))
+            else -> Async.Error(UiText.StringResource(R.string.unknown_error))
+        }
+    }
+    private val _appCheckSum = MutableStateFlow<String>("")
+
+    val uiState: StateFlow<AppDetailState> = combine(
+        _isLoading, _appDetail, _appCheckSum
+    ) { isLoading, appDetail, appCheckSum ->
+
+        when (appDetail) {
+            Async.Loading -> {
+                AppDetailState(isLoading = true)
             }
 
-            result.onFailure { error ->
-
-                val errMessage = getErrorMessageOrUnknown(error)
-
-                _state.update {
-                    it.copy(
-                        isCalculatingChecksum = false,
-                        isLoading = false,
-                        error = errMessage
-                    )
-                }
+            is Async.Error -> {
+                AppDetailState(
+                    error = appDetail.errorMessage,
+                    isLoading = false
+                )
             }
+
+            is Async.Success -> {
+                AppDetailState(
+                    appInfo = appDetail.data,
+                    isOpenButtonEnable = _isOpenButtonEnable,
+                    isLoading = false,
+                    checkSum = appCheckSum,
+                    isCalculatingChecksum = appCheckSum.isEmpty(),
+                    error = null
+                )
+            }
+        }
+    }.stateIn(
+        scope = defaultViewModelScope,
+        started = WhileUiSubscribed,
+        initialValue = AppDetailState(isLoading = true)
+    )
+
+    private fun handleAppInstallEvent(event: AppInstallEvent) {
+        when (event) {
+            is AppInstallEvent.Installed -> {
+                if (event.packageName == packageName) {
+                    loadAppDetail(packageName = packageName)
+                }
+                Timber.d("App installed: ${event.appName}")
+            }
+
+            is AppInstallEvent.Updated -> {
+                if (event.packageName == packageName) {
+                    loadAppDetail(packageName = packageName)
+                    // TODO: формировать AppDetailState тут?
+                }
+                Timber.d("App updated: ${event.appName}")
+            }
+
+            is AppInstallEvent.Uninstalled -> {
+                if (event.packageName == packageName) {
+                    defaultViewModelScope.launch {
+                        _effect.emit(AppDetailEffect.AppWasRemowed)
+                    }
+                }
+                Timber.d("App uninstalled: ${event.appName ?: event.packageName}")
+            }
+
+            is AppInstallEvent.Error -> {
+                Timber.d("Error: ${event.throwable.message}")
+            }
+
         }
     }
 
     private fun calculateChecksum(apkPath: String) {
         defaultViewModelScope.launch {
-            _state.update { it.copy(isCalculatingChecksum = true) }
-
             val result = calculateChecksumUseCase(apkPath)
-            result.onSuccess { data ->
-                _state.update { currentState ->
-                    currentState.copy(
-                        appInfo = currentState.appInfo?.copy(checksum = data),
-                        isCalculatingChecksum = false
-                    )
-                }
-
-            }
-
-            result.onFailure { error ->
-
-                val errMessage = getErrorMessageOrUnknown(error)
-
-                _state.update {
-                    it.copy(
-                        isCalculatingChecksum = false,
-                        isLoading = false,
-                        error = errMessage
-                    )
-                }
+            result.collect {
+                _appCheckSum.value = it
             }
         }
     }
 
-    override fun onCoroutineException(message: UiText) {
-        _state.update {
-            it.copy(
-                error = message
-            )
+    fun loadAppDetail(packageName: String) {
+        defaultViewModelScope.launch {
+            _isLoading.value = true
+            // Отправляем событие для перезагрузки
+            _refreshTrigger.emit(Unit)
+            _isLoading.value = false
         }
     }
-
 }

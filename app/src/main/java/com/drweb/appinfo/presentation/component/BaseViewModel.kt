@@ -2,22 +2,23 @@ package com.drweb.appinfo.presentation.component
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.drweb.appinfo.core.common.getErrorMessageOrUnknown
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import timber.log.Timber
 
 abstract class BaseViewModel : ViewModel() {
 
-    val coroutineExceptionHandler = CoroutineExceptionHandler { _, exception: Throwable ->
+    /*
+        CoroutineExceptionHandler — ловит только неотловленные исключения
+        (кроме CancellationException), которые распространяются на родительский скоуп,
+        чтобы предотвратить падение приложения
+     */
+    val coroutineExceptionHandler = CoroutineExceptionHandler { _, error: Throwable ->
         viewModelScope.launch {
-            val error = getErrorMessageOrUnknown(exception)
-            onCoroutineException(error)
+            Timber.d("Error = ${error.localizedMessage}")
         }
     }
 
-    abstract fun onCoroutineException(message: UiText)
-
     protected val defaultViewModelScope = viewModelScope + coroutineExceptionHandler
-
 }

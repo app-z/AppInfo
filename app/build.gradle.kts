@@ -13,6 +13,10 @@ android {
         version = release(36)
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.drweb.appinfo"
         minSdk = 24
@@ -69,6 +73,8 @@ dependencies {
 
     implementation(libs.androidx.junit.ktx)
     implementation(libs.androidx.ui.test.junit4)
+
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Тестирование
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")

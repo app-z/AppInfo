@@ -1,12 +1,13 @@
 package com.drweb.appinfo.domain.usecase
 
 import com.drweb.appinfo.domain.repository.AppRepository
+import kotlinx.coroutines.flow.Flow
 
 
 class CalculateChecksumUseCase(
     private val repository: AppRepository
 ) {
-    suspend operator fun invoke(apkPath: String): Result<String> {
-        return repository.calculateChecksum(apkPath)
+    operator fun invoke(apkPath: String): Flow<String> {
+        return repository.fetchChecksum(apkPath)
     }
 }

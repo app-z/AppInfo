@@ -1,10 +1,14 @@
 package com.drweb.appinfo.domain.repository
 
 import com.drweb.appinfo.domain.model.AppInfo
+import kotlinx.coroutines.flow.Flow
 
 
 interface AppRepository {
-    suspend fun getInstalledApps(): Result<List<AppInfo>>
-    suspend fun getAppDetail(packageName: String): Result<AppInfo>
-    suspend fun calculateChecksum(apkPath: String): Result<String>
+    fun fetchInstalledApps(): Flow<List<AppInfo>>
+    fun fetchAppDetail(packageName: String): Flow<AppInfo>
+
+    fun getAppInfo(packageName: String): Result<AppInfo>
+
+    fun fetchChecksum(apkPath: String): Flow<String>
 }

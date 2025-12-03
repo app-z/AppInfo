@@ -2,11 +2,17 @@ package com.drweb.appinfo.core.di
 
 import com.drweb.appinfo.data.datasource.AppDataSource
 import com.drweb.appinfo.data.local.AppLocalDataSource
+import com.drweb.appinfo.data.repositiry.AppIconRepository
+import com.drweb.appinfo.data.repositiry.AppObserveRepositoryImpl
 import com.drweb.appinfo.data.repositiry.AppRepositoryImpl
+import com.drweb.appinfo.data.repositiry.TrackingStrategyFactory
+import com.drweb.appinfo.domain.repository.AppObserveRepository
 import com.drweb.appinfo.domain.repository.AppRepository
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
+import com.drweb.appinfo.domain.usecase.GetAppIconUseCase
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
+import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
 import com.drweb.appinfo.presentation.appdetail.AppDetailViewModel
 import com.drweb.appinfo.presentation.applist.AppListViewModel
 import org.koin.android.ext.koin.androidContext
@@ -19,13 +25,25 @@ val appModule = module {
 
     // Repositories
     single<AppRepository> { AppRepositoryImpl(get()) }
+    single<AppObserveRepository> {
+        AppObserveRepositoryImpl(
+            get(),
+            get()
+        )
+    }
+
+    single { AppIconRepository(androidContext()) }
+
+    single { TrackingStrategyFactory(androidContext(), get()) }
 
     // Use Cases
     factory { GetInstalledAppsUseCase(get()) }
     factory { GetAppDetailUseCase(get()) }
     factory { CalculateChecksumUseCase(get()) }
+    factory { ObserveAppInstallUseCase(get()) }
+    factory { GetAppIconUseCase(get()) }
+
 
     viewModelOf(::AppListViewModel)
     viewModelOf(::AppDetailViewModel)
-
 }
