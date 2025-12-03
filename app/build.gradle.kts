@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.androidTestImplementation
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -65,8 +67,12 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
 
+    implementation(libs.androidx.junit.ktx)
+    implementation(libs.androidx.ui.test.junit4)
+
     // Тестирование
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.6")
+//    androidTestImplementation("io.mockk:mockk-android:1.13.8")
 
 }
