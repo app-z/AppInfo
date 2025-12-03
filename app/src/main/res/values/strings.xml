@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">AppInfo DrWeb</string>
+    <string name="repeated">Повторить</string>
+    <string name="installed_app_title">Установленные приложения</string>
+    <string name="app_not_found">Приложения не найдены</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+    <string name="package_title">"Пакет:"</string>
+    <string name="version_title">"Версия: %s"</string>
+    <string name="app_info_title">Информация о приложении</string>
+
+</resources>
