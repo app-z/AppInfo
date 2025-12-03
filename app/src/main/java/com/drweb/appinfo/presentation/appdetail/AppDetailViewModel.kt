@@ -1,11 +1,11 @@
 package com.drweb.appinfo.presentation.appdetail
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
 import com.drweb.appinfo.core.common.getErrorMessageOrUnknown
+import com.drweb.appinfo.presentation.component.BaseViewModel
+import com.drweb.appinfo.presentation.component.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +17,7 @@ class AppDetailViewModel(
     private val packageName: String,
     private val getAppDetailUseCase: GetAppDetailUseCase,
     private val calculateChecksumUseCase: CalculateChecksumUseCase,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AppDetailState())
     val state: StateFlow<AppDetailState> = _state.asStateFlow()
@@ -27,7 +27,7 @@ class AppDetailViewModel(
     }
 
     fun loadAppDetail(packageName: String) {
-        viewModelScope.launch {
+        defaultViewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             val result = getAppDetailUseCase(packageName)
@@ -59,7 +59,7 @@ class AppDetailViewModel(
     }
 
     private fun calculateChecksum(apkPath: String) {
-        viewModelScope.launch {
+        defaultViewModelScope.launch {
             _state.update { it.copy(isCalculatingChecksum = true) }
 
             val result = calculateChecksumUseCase(apkPath)
@@ -85,6 +85,14 @@ class AppDetailViewModel(
                     )
                 }
             }
+        }
+    }
+
+    override fun onCoroutineException(message: UiText) {
+        _state.update {
+            it.copy(
+                error = message
+            )
         }
     }
 
