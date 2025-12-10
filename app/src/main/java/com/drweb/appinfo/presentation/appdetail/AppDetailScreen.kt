@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.openApp
 import com.drweb.appinfo.presentation.appdetail.components.InfoRow
+import com.drweb.appinfo.presentation.appdetail.components.NavigationState
 import com.drweb.appinfo.presentation.component.ErrorScreen
 import com.drweb.appinfo.presentation.component.LoadingIndicator
 import org.koin.androidx.compose.koinViewModel
@@ -45,7 +46,15 @@ fun AppDetailScreen(
 ) {
     val viewModel: AppDetailViewModel = koinViewModel { parametersOf(packageName) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val effect by viewModel.effect.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    when(effect) {
+        NavigationState.Idle -> {}
+        NavigationState.NavigationBack -> {
+            onNavigateBack.invoke()
+        }
+    }
 
     Scaffold(
         topBar = {
