@@ -1,8 +1,9 @@
 package com.drweb.appinfo.data.datasource
 
 import com.drweb.appinfo.domain.model.AppInfo
+import kotlinx.coroutines.flow.Flow
 
 interface AppDataSource {
-    suspend fun getInstalledApps(): Result<List<AppInfo>>
-    suspend fun getAppInfo(packageName: String): Result<AppInfo>
+    fun fetchInstalledAppsFlow(): Flow<List<AppInfo>>
+    fun fetchAppInfo(packageName: String): Flow<AppInfo>
 }

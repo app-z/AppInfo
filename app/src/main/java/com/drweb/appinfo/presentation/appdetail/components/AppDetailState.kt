@@ -8,5 +8,6 @@ data class AppDetailState(
     val isLoading: Boolean = false,
     val isCalculatingChecksum: Boolean = false,
     val error: UiText? = null,
-    val isOpenButtonEnable: Boolean? = null
+    val isOpenButtonEnable: Boolean? = null,
+    val checkSum: String = ""
 )

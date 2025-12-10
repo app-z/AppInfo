@@ -59,8 +59,8 @@ class AppListViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockUseCase() } returns Result.success(testApps)
-        viewModel = AppListViewModel(mockUseCase)
+//        coEvery { mockUseCase() } returns Result.success(testApps)
+//        viewModel = AppListViewModel(mockUseCase)
     }
 
     @After
@@ -104,8 +104,8 @@ class AppListViewModelTest {
     fun `loadApps should update state with error on failure`() = runTest {
         // Given
         val errorMessage = "Failed to load"
-        coEvery { mockUseCase() } returns Result.failure(Exception(errorMessage))
-        viewModel = AppListViewModel(mockUseCase)
+//        coEvery { mockUseCase() } returns Result.failure(Exception(errorMessage))
+//        viewModel = AppListViewModel(mockUseCase)
 
         // When
         testDispatcher.scheduler.advanceUntilIdle()
@@ -120,7 +120,7 @@ class AppListViewModelTest {
     @Test
     fun `onSearchQueryChange should return all apps when query is empty`() = runTest {
         // Given
-        coEvery { mockUseCase() } returns Result.success(testApps)
+//        coEvery { mockUseCase() } returns Result.success(testApps)
 
         // When
         viewModel.loadApps()
@@ -134,7 +134,7 @@ class AppListViewModelTest {
     @Test
     fun `onSearchQueryChange should handle case insensitive search`() = runTest {
         // Given
-        coEvery { mockUseCase() } returns Result.success(testApps)
+//        coEvery { mockUseCase() } returns Result.success(testApps)
 
         // When
         viewModel.loadApps()

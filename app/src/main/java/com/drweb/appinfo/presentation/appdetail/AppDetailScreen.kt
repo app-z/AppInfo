@@ -44,7 +44,7 @@ fun AppDetailScreen(
     onNavigateBack: () -> Unit,
 ) {
     val viewModel: AppDetailViewModel = koinViewModel { parametersOf(packageName) }
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     Scaffold(
@@ -120,7 +120,7 @@ fun AppDetailScreen(
                             } else {
                                 InfoRow(
                                     title = "Контрольная сумма (SHA-256):",
-                                    value = appInfo.checksum.ifEmpty { "Не рассчитана" },
+                                    value =  state.checkSum.ifEmpty { "Не рассчитана" },
                                     valueFontFamily = FontFamily.Monospace
                                 )
                             }

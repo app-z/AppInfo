@@ -9,6 +9,8 @@ import com.drweb.appinfo.core.common.ChecksumUtils
 import com.drweb.appinfo.data.datasource.AppDataSource
 import com.drweb.appinfo.domain.model.AppInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -16,7 +18,7 @@ class AppLocalDataSource(
     private val context: Context
 ) : AppDataSource {
 
-    override suspend fun getInstalledApps(): Result<List<AppInfo>> {
+    private suspend fun getInstalledApps(): Result<List<AppInfo>> {
         return withContext(Dispatchers.IO) {
             try {
                 val packageManager = context.packageManager
@@ -59,7 +61,15 @@ class AppLocalDataSource(
         }
     }
 
-    override suspend fun getAppInfo(packageName: String): Result<AppInfo> {
+    override fun fetchInstalledAppsFlow(): Flow<List<AppInfo>> = flow {
+        emit(getInstalledApps().getOrThrow())
+    }
+
+    override fun fetchAppInfo(packageName: String): Flow<AppInfo> = flow {
+        emit(getAppInfo(packageName = packageName).getOrThrow())
+    }
+
+   private suspend fun getAppInfo(packageName: String): Result<AppInfo> {
         return withContext(Dispatchers.IO) {
             try {
                 val packageManager = context.packageManager
@@ -68,7 +78,7 @@ class AppLocalDataSource(
                     packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
 
                 val apkFile = File(applicationInfo.sourceDir)
-                val checksum = ChecksumUtils.calculateSHA256(apkFile)
+//                val checksum = ChecksumUtils.calculateSHA256(apkFile)
 
                 val versionCode = getVersionCode(packageInfo)
 
@@ -78,7 +88,7 @@ class AppLocalDataSource(
                     versionName = packageInfo.versionName,
                     versionCode = versionCode,
                     apkPath = applicationInfo.sourceDir,
-                    checksum = checksum
+                    checksum = ""
                 )
 
                 Result.success(appInfo)

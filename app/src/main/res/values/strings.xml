@@ -7,5 +7,7 @@
     <string name="package_title">"Пакет:"</string>
     <string name="version_title">"Версия: %s"</string>
     <string name="app_info_title">Информация о приложении</string>
+    <string name="loading_tasks_error">Ошибка получения данных</string>
+    <string name="calculating_check_sum_error">Ошибка вычисления контрольной суммы</string>
 
 </resources>

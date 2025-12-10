@@ -1,23 +1,31 @@
 package com.drweb.appinfo.presentation.component
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.drweb.appinfo.core.common.getErrorMessageOrUnknown
+import com.drweb.appinfo.core.common.getErrorOrUnknown
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 
 abstract class BaseViewModel : ViewModel() {
 
-    val coroutineExceptionHandler = CoroutineExceptionHandler { _, exception: Throwable ->
+    /*
+        CoroutineExceptionHandler — ловит только неотловленные исключения
+        (кроме CancellationException), которые распространяются на родительский скоуп,
+        чтобы предотвратить падение приложения
+     */
+    val coroutineExceptionHandler = CoroutineExceptionHandler { _, error: Throwable ->
         viewModelScope.launch {
-            val error = getErrorMessageOrUnknown(exception)
-            onCoroutineException(error)
+            Log.d(TAG, "Error = error.localizedMessage")
         }
     }
 
-    abstract fun onCoroutineException(message: UiText)
-
     protected val defaultViewModelScope = viewModelScope + coroutineExceptionHandler
+
+    companion object {
+        const val TAG = "onCoroutineException"
+    }
+
 
 }

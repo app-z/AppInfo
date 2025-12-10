@@ -2,8 +2,9 @@ package com.drweb.appinfo.core.common
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
+import com.drweb.appinfo.R
+import com.drweb.appinfo.presentation.component.UiText
 
 fun Context.openApp(packageName: String): Boolean {
     return try {
@@ -31,5 +32,13 @@ fun Context.openApp(packageName: String): Boolean {
         }
     } catch (e: Exception) {
         false
+    }
+}
+
+fun Throwable.getErrorOrUnknown() : UiText {
+    return if (this.message != null) {
+        UiText.DynamicString(this.message!!)
+    } else {
+        UiText.StringResource(R.string.unknown_error)
     }
 }
