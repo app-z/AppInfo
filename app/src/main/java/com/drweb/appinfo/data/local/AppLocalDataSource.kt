@@ -5,14 +5,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import com.drweb.appinfo.core.common.ChecksumUtils
 import com.drweb.appinfo.data.datasource.AppDataSource
 import com.drweb.appinfo.domain.model.AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class AppLocalDataSource(
     private val context: Context
@@ -42,7 +40,6 @@ class AppLocalDataSource(
                                 versionName = packageInfo.versionName,
                                 versionCode = versionCode,
                                 apkPath = applicationInfo.sourceDir,
-                                checksum = "" // Рассчитывается по требованию
                             )
 
                             appList.add(appInfo)
@@ -77,7 +74,7 @@ class AppLocalDataSource(
                 val packageInfo =
                     packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
 
-                val apkFile = File(applicationInfo.sourceDir)
+//                val apkFile = File(applicationInfo.sourceDir)
 //                val checksum = ChecksumUtils.calculateSHA256(apkFile)
 
                 val versionCode = getVersionCode(packageInfo)
@@ -88,7 +85,6 @@ class AppLocalDataSource(
                     versionName = packageInfo.versionName,
                     versionCode = versionCode,
                     apkPath = applicationInfo.sourceDir,
-                    checksum = ""
                 )
 
                 Result.success(appInfo)

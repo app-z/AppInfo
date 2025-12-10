@@ -9,6 +9,5 @@ data class AppInfo(
     val packageName: String,
     val versionName: String?,
     val versionCode: Long,
-    val apkPath: String,
-    val checksum: String = ""
+    val apkPath: String
 ) : Parcelable

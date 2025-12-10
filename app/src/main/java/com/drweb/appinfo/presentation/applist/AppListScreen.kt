@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,8 +29,7 @@ fun AppListScreen(
 ) {
 
     val viewModel: AppListViewModel = koinViewModel()
-
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -59,6 +60,7 @@ fun AppListScreen(
                         items(state.apps) { app ->
                             AppListItem(
                                 app = app,
+                                viewModel = viewModel,
                                 onClick = { onAppClick(app.packageName) }
                             )
                         }

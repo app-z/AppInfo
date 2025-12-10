@@ -1,6 +1,7 @@
 package com.drweb.appinfo.presentation.appdetail
 
 import android.util.Log
+import androidx.annotation.MainThread
 import com.drweb.appinfo.BuildConfig
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.Async
@@ -11,13 +12,14 @@ import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
 import com.drweb.appinfo.presentation.appdetail.components.NavigationState
+import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel
 import com.drweb.appinfo.presentation.component.UiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -50,22 +52,12 @@ class AppDetailViewModel(
     // SharedFlow для перезапуска (Из экрана с ошибкой)
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
 
-    private val _observeApp: SharedFlow<AppInstallEvent?> = observeAppInstallUseCase().shareIn(
-        defaultViewModelScope,
-        started = WhileUiSubscribed,
-    )
-
     init {
-        defaultViewModelScope.launch {
-            try {
-                _observeApp.collect {
-                    it?.let { event ->
-                        handleAppInstallEvent(event = event)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(">>>>", "Failed to collect events ${e.localizedMessage}")
-            }
+        AppInstallHelper(
+            scope = defaultViewModelScope,
+            observeAppInstallUseCase = observeAppInstallUseCase
+        ).initialize {
+            handleAppInstallEvent(it)
         }
     }
 
@@ -132,6 +124,7 @@ class AppDetailViewModel(
             is AppInstallEvent.Updated -> {
                 if (event.packageName == packageName) {
                     loadAppDetail(packageName = packageName)
+                    // TODO: формировать AppDetailState тут?
                 }
                 println("App updated: ${event.appName}")
             }
@@ -165,5 +158,9 @@ class AppDetailViewModel(
             _refreshTrigger.emit(Unit)
             _isLoading.value = false
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
     }
 }

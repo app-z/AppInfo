@@ -46,7 +46,7 @@ fun AppDetailScreen(
 ) {
     val viewModel: AppDetailViewModel = koinViewModel { parametersOf(packageName) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val effect by viewModel.effect.collectAsStateWithLifecycle()
+    val effect by viewModel.effect.collectAsStateWithLifecycle() // TODO: MVI ?
     val context = LocalContext.current
 
     when(effect) {
