@@ -55,9 +55,7 @@ fun AppListScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize()
                     ) {
-
-
-                        items(state.apps) { app ->
+                        items(state.apps, key = { it.packageName }) { app ->
                             AppListItem(
                                 app = app,
                                 viewModel = viewModel,

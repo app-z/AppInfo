@@ -118,6 +118,9 @@ class AppDetailViewModel(
     private fun handleAppInstallEvent(event: AppInstallEvent) {
         when (event) {
             is AppInstallEvent.Installed -> {
+                if (event.packageName == packageName) {
+                    loadAppDetail(packageName = packageName)
+                }
                 println("App installed: ${event.appName}")
             }
 

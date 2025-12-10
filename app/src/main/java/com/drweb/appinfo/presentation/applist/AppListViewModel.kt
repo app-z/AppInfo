@@ -106,15 +106,17 @@ class AppListViewModel(
     private fun handleAppInstallEvent(event: AppInstallEvent) {
         when (event) {
             is AppInstallEvent.Installed -> {
-                println("App installed: ${event.appName}")
                 loadApps()
+                println("App installed: ${event.appName}")
             }
 
             is AppInstallEvent.Updated -> {
+                loadApps()
                 println("App updated: ${event.appName}")
             }
 
             is AppInstallEvent.Uninstalled -> {
+                loadApps()
                 println("App uninstalled: ${event.appName ?: event.packageName}")
             }
 
