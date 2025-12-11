@@ -58,7 +58,7 @@ class AppInstallRepositoryImpl(
         startTracking(listener)
 
         awaitClose {
-            stopTracking(null)
+            stopTracking(listener)
         }
     }
 
@@ -96,7 +96,7 @@ class AppInstallRepositoryImpl(
     }
 
     override fun stopTracking(listener: AppInstallTracker.Listener?) {
+        appInstallTracker.removeListener(listener)
         appInstallTracker.stopTracking()
-        appInstallTracker.setListener(listener)
     }
 }

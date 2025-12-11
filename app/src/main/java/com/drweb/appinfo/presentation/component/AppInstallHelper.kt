@@ -6,10 +6,12 @@ import com.drweb.appinfo.core.common.WhileUiSubscribed
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
 import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class AppInstallHelper(
     private val scope: CoroutineScope,
@@ -42,8 +44,10 @@ class AppInstallHelper(
                             appInstallEvent(event)
                         }
                     }
+                } catch (e: CancellationException) {
+                    Timber.e(e)
                 } catch (e: Exception) {
-                    Log.e(">>>>", "Failed to collect events ${e.localizedMessage}")
+                    Timber.e(e)
                 }
             }
         }

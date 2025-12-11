@@ -6,8 +6,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
-open class AppInstallTracker(
+class AppInstallTracker(
     private val context: Context
 ) {
 
@@ -18,14 +20,19 @@ open class AppInstallTracker(
         fun onError(throwable: Throwable)
     }
 
-    private var listener: Listener? = null
+    private var listenerList = CopyOnWriteArraySet<Listener?>() // TODO: make it blocking?
+
     private var broadcastReceiver: BroadcastReceiver? = null
 
     fun setListener(listener: Listener?) {
-        this.listener = listener
+        this.listenerList.add(listener)
     }
 
-    open fun startTracking() {
+    fun removeListener(listener: Listener?) {
+        this.listenerList.remove(listener)
+    }
+
+    fun startTracking() {
         if (broadcastReceiver != null) return
 
         broadcastReceiver = object : BroadcastReceiver() {
@@ -51,8 +58,10 @@ open class AppInstallTracker(
 
     fun stopTracking() {
         broadcastReceiver?.let {
-            context.unregisterReceiver(it)
-            broadcastReceiver = null
+            if(this.listenerList.isEmpty()) {
+                context.unregisterReceiver(it)
+                broadcastReceiver = null
+            }
         }
     }
 
@@ -73,21 +82,29 @@ open class AppInstallTracker(
                 Intent.ACTION_PACKAGE_ADDED -> {
                     val isUpdate = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
                     if (isUpdate) {
-                        listener?.onAppUpdated(packageName)
+                        listenerList.forEach {
+                            it?.onAppUpdated(packageName)
+                        }
                     } else {
-                        listener?.onAppInstalled(packageName, appName)
+                        listenerList.forEach {
+                            it?.onAppInstalled(packageName, appName)
+                        }
                     }
                 }
 
                 Intent.ACTION_PACKAGE_REMOVED -> {
                     val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
                     if (!isReplacing) {
-                        listener?.onAppUninstalled(packageName, appName)
+                        listenerList.forEach {
+                            it?.onAppUninstalled(packageName, appName)
+                        }
                     }
                 }
             }
         } catch (e: Exception) {
-            listener?.onError(e)
+            listenerList.forEach {
+                it?.onError(e)
+            }
         }
     }
 }
