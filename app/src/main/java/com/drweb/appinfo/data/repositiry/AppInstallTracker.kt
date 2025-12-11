@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -102,8 +103,10 @@ class AppInstallTracker(
                 }
             }
         } catch (e: Exception) {
-            listenerList.forEach {
-                it?.onError(e)
+            if (e !is CancellationException) {
+                listenerList.forEach {
+                    it?.onError(e)
+                }
             }
         }
     }

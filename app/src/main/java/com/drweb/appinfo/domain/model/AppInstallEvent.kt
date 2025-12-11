@@ -27,16 +27,4 @@ sealed class AppInstallEvent {
     data class Error(val throwable: Throwable) : AppInstallEvent()
 
     object JustReloadForNewVersion: AppInstallEvent()
-
 }
-
-// domain/model/AppChangeInfo.kt
-data class AppChangeInfo(
-    val packageName: String,
-    val appName: String?,
-    val isSystemApp: Boolean = false,
-    val installTime: Long = 0,
-    val updateTime: Long = 0,
-    val versionName: String? = null,
-    val versionCode: Long = 0
-)

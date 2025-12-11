@@ -34,8 +34,7 @@ import kotlinx.coroutines.launch
 class AppListViewModel(
     private val getAppIconUseCase: GetAppIconUseCase,
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
-    private val observeAppInstallUseCase: ObserveAppInstallUseCase,
-    private val observeContentAppInstall12UseCase: ObserveContentAppInstall12UseCase
+    private val appInstallHelper: AppInstallHelper
 ) : BaseViewModel() {
 
     private val _icons = mutableMapOf<String, Bitmap?>()
@@ -98,12 +97,10 @@ class AppListViewModel(
     )
 
     init {
-        AppInstallHelper(
-            scope = defaultViewModelScope,
-            observeAppInstallUseCase = observeAppInstallUseCase,
-            observeContentAppInstall12UseCase = observeContentAppInstall12UseCase
-        ).initialize {
-            handleAppInstallEvent(it)
+        defaultViewModelScope.launch {
+            appInstallHelper.appEvents.collect { event ->
+                handleAppInstallEvent(event)
+            }
         }
     }
 

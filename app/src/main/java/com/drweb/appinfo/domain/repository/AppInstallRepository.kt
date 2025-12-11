@@ -12,11 +12,6 @@ interface AppInstallRepository {
     fun observeAppInstallEvents(): Flow<AppInstallEvent>
 
     /**
-     * Получает информацию об установленных приложениях
-     */
-    suspend fun getInstalledApps(): List<String>
-
-    /**
      * Получает информацию о конкретном приложении
      */
     fun getAppInfo(packageName: String): AppChangeInfo?

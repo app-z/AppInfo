@@ -37,8 +37,7 @@ class AppDetailViewModel(
     private val packageName: String,
     private val getAppDetailUseCase: GetAppDetailUseCase,
     private val calculateChecksumUseCase: CalculateChecksumUseCase,
-    private val observeAppInstallUseCase: ObserveAppInstallUseCase,
-    private val observeContentAppInstall12UseCase: ObserveContentAppInstall12UseCase
+    private val appInstallHelper: AppInstallHelper
 ) : BaseViewModel() {
 
     private val _effect: MutableStateFlow<NavigationState> = MutableStateFlow(
@@ -55,12 +54,10 @@ class AppDetailViewModel(
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
 
     init {
-        AppInstallHelper(
-            scope = defaultViewModelScope,
-            observeAppInstallUseCase = observeAppInstallUseCase,
-            observeContentAppInstall12UseCase = observeContentAppInstall12UseCase
-        ).initialize {
-            handleAppInstallEvent(it)
+        defaultViewModelScope.launch {
+            appInstallHelper.appEvents.collect { event ->
+                handleAppInstallEvent(event)
+            }
         }
     }
 

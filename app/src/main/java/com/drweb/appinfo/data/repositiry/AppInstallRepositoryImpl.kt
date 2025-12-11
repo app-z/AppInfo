@@ -8,8 +8,6 @@ import com.drweb.appinfo.domain.repository.AppInstallRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 
 class AppInstallRepositoryImpl(
     private val context: Context,
@@ -61,11 +59,6 @@ class AppInstallRepositoryImpl(
             stopTracking(listener)
         }
     }
-
-    override suspend fun getInstalledApps(): List<String> = flow {
-        val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-        emit(packages.map { it.packageName })
-    }.first()
 
     override fun getAppInfo(packageName: String): AppChangeInfo? {
         return try {
