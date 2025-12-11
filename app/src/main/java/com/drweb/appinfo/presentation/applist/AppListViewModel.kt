@@ -11,7 +11,6 @@ import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.GetAppIconUseCase
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
-import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
 import com.drweb.appinfo.presentation.applist.components.AppListState
 import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel

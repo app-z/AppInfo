@@ -5,7 +5,6 @@ import com.drweb.appinfo.data.local.AppLocalDataSource
 import com.drweb.appinfo.data.repositiry.AppIconRepository
 import com.drweb.appinfo.data.repositiry.AppInstallRepositoryImpl
 import com.drweb.appinfo.data.repositiry.AppInstallTracker
-import com.drweb.appinfo.data.repositiry.AppInstallTrackerContentObserver
 import com.drweb.appinfo.data.repositiry.AppRepositoryImpl
 import com.drweb.appinfo.domain.repository.AppInstallRepository
 import com.drweb.appinfo.domain.repository.AppRepository
@@ -14,7 +13,6 @@ import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
 import com.drweb.appinfo.domain.usecase.GetAppIconUseCase
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
-import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
 import com.drweb.appinfo.presentation.appdetail.AppDetailViewModel
 import com.drweb.appinfo.presentation.applist.AppListViewModel
 import com.drweb.appinfo.presentation.component.AppInstallHelper
@@ -32,8 +30,7 @@ val appModule = module {
     single { AppIconRepository(androidContext()) }
     single { AppInstallTracker(androidContext()) }
 
-    single { AppInstallTrackerContentObserver(androidContext()) }
-    single { AppInstallHelper(get(), get()) }
+    single { AppInstallHelper(get()) }
 
     // Use Cases
     factory { GetInstalledAppsUseCase(get()) }
@@ -41,7 +38,6 @@ val appModule = module {
     factory { CalculateChecksumUseCase(get()) }
     factory { ObserveAppInstallUseCase(get()) }
     factory { GetAppIconUseCase(get()) }
-    factory { ObserveContentAppInstall12UseCase(get()) }
 
 
     viewModelOf(::AppListViewModel)

@@ -1,7 +1,5 @@
 package com.drweb.appinfo.presentation.appdetail
 
-import android.util.Log
-import androidx.annotation.MainThread
 import com.drweb.appinfo.BuildConfig
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.Async
@@ -9,18 +7,14 @@ import com.drweb.appinfo.core.common.WhileUiSubscribed
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
-import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
-import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
 import com.drweb.appinfo.presentation.appdetail.components.NavigationState
 import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel
 import com.drweb.appinfo.presentation.component.UiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,7 +22,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
