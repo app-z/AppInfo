@@ -15,12 +15,4 @@ class GetAppIconUseCase(
         val icon = repository.getAppIcon(packageName)
         emit(icon)
     }.flowOn(Dispatchers.IO)
-
-    operator fun invoke(
-        packageName: String,
-        size: Int
-    ): Flow<Bitmap?> = flow {
-        val icon = repository.getAppIconCached(packageName, size)
-        emit(icon)
-    }.flowOn(Dispatchers.IO)
 }

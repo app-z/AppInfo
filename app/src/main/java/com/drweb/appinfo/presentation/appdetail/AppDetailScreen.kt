@@ -1,7 +1,9 @@
 package com.drweb.appinfo.presentation.appdetail
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,8 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.openApp
+import com.drweb.appinfo.domain.model.AppInfo
 import com.drweb.appinfo.presentation.appdetail.components.InfoRow
-import com.drweb.appinfo.presentation.appdetail.components.NavigationState
+import com.drweb.appinfo.presentation.appdetail.components.AppDetailEffect
+import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
+import com.drweb.appinfo.presentation.component.AppWasRemowedScreen
 import com.drweb.appinfo.presentation.component.ErrorScreen
 import com.drweb.appinfo.presentation.component.LoadingIndicator
 import org.koin.androidx.compose.koinViewModel
@@ -46,14 +54,20 @@ fun AppDetailScreen(
 ) {
     val viewModel: AppDetailViewModel = koinViewModel { parametersOf(packageName) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val effect by viewModel.effect.collectAsStateWithLifecycle() // TODO: MVI ?
+    val effect by viewModel.effect.collectAsStateWithLifecycle(null) // TODO: MVI ?
     val context = LocalContext.current
+    var isAppWasRemowed by remember { mutableStateOf(false) }
 
-    when(effect) {
-        NavigationState.Idle -> {}
-        NavigationState.NavigationBack -> {
+    when (effect) {
+        AppDetailEffect.NavigationBack -> {
             onNavigateBack.invoke()
         }
+
+        is AppDetailEffect.AppWasRemowed -> {
+            isAppWasRemowed = true
+        }
+
+        null -> {}
     }
 
     Scaffold(
@@ -75,81 +89,96 @@ fun AppDetailScreen(
                 val appInfo = state.appInfo!!
                 val isOpenButtonEnable = state.isOpenButtonEnable
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-
-                    // Название приложения
-                    Text(
-                        text = appInfo.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                    )
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            InfoRow(
-                                title = stringResource(R.string.package_title),
-                                value = appInfo.packageName
-                            )
-
-                            InfoRow(
-                                title = "Версия:",
-                                value = appInfo.versionName ?: appInfo.versionCode.toString()
-                            )
-
-                            InfoRow(
-                                title = "Код версии:",
-                                value = appInfo.versionCode.toString()
-                            )
-
-                            if (state.isCalculatingChecksum) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Контрольная сумма (SHA-256):",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                                }
-                            } else {
-                                InfoRow(
-                                    title = "Контрольная сумма (SHA-256):",
-                                    value =  state.checkSum.ifEmpty { "Не рассчитана" },
-                                    valueFontFamily = FontFamily.Monospace
-                                )
-                            }
-                        }
-                    }
-
-                    // Кнопка открытия приложения
-                    if (isOpenButtonEnable == true) {
-                        Button(
-                            onClick = {
-                                context.openApp(appInfo.packageName)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            Text("Открыть приложение")
-                        }
-                    }
+                if (isAppWasRemowed) {
+                    AppWasRemowedScreen(appName = appInfo.name, onNext = onNavigateBack)
+                } else {
+                    AppDetailScreen(paddingValues, appInfo, state, isOpenButtonEnable, context)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppDetailScreen(
+    paddingValues: PaddingValues,
+    appInfo: AppInfo,
+    state: AppDetailState,
+    isOpenButtonEnable: Boolean?,
+    context: Context
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        // Название приложения
+        Text(
+            text = appInfo.name,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoRow(
+                    title = stringResource(R.string.package_title),
+                    value = appInfo.packageName
+                )
+
+                InfoRow(
+                    title = "Версия:",
+                    value = appInfo.versionName ?: appInfo.versionCode.toString()
+                )
+
+                InfoRow(
+                    title = "Код версии:",
+                    value = appInfo.versionCode.toString()
+                )
+
+                if (state.isCalculatingChecksum) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Контрольная сумма (SHA-256):",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    }
+                } else {
+                    InfoRow(
+                        title = "Контрольная сумма (SHA-256):",
+                        value = state.checkSum.ifEmpty { "Не рассчитана" },
+                        valueFontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+        }
+
+        // Кнопка открытия приложения
+        if (isOpenButtonEnable == true) {
+            Button(
+                onClick = {
+                    context.openApp(appInfo.packageName)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text("Открыть приложение")
             }
         }
     }

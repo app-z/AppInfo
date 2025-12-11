@@ -8,13 +8,22 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
+import com.drweb.appinfo.data.datasource.AppDataSource
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
 
 class AppInstallTracker(
-    private val context: Context
+    private val context: Context,
+    private val dataSource: AppDataSource
 ) {
 
     interface Listener {
@@ -124,28 +133,29 @@ class AppInstallTracker(
 
         // Обрабатываем установленные приложения
         installedPackages.forEach { packageName ->
-            try {
-                val appInfo = getAppInfo(packageName) ?: return@forEach
+            dataSource.fetchAppInfo(packageName = packageName).collect { appInfo ->
+                try {
 
-                // Проверяем, это новая установка или обновление
-                val existingInfo = appVersionCache[packageName]
-                if (existingInfo != null && appInfo.versionCode > existingInfo.versionCode) {
-                    // Это обновление
-                    notifyAppUpdated(packageName)
-                } else {
-                    // Это новая установка
-                    notifyAppInstalled(packageName, appInfo.appName)
+                    // Проверяем, это новая установка или обновление
+                    val existingInfo = appVersionCache[packageName]
+                    if (existingInfo != null && appInfo.versionCode > existingInfo.versionCode) {
+                        // Это обновление
+                        notifyAppUpdated(packageName)
+                    } else {
+                        // Это новая установка
+                        notifyAppInstalled(packageName, appInfo.name)
+                    }
+
+                    // Обновляем кэш
+                    appVersionCache[packageName] = AppVersionInfo(
+                        versionCode = appInfo.versionCode,
+                        versionName = appInfo.versionName,
+                        updateTime = appInfo.updateTime
+                    )
+
+                } catch (e: Exception) {
+                    notifyError(e)
                 }
-
-                // Обновляем кэш
-                appVersionCache[packageName] = AppVersionInfo(
-                    versionCode = appInfo.versionCode,
-                    versionName = appInfo.versionName,
-                    updateTime = appInfo.updateTime
-                )
-
-            } catch (e: Exception) {
-                notifyError(e)
             }
         }
 
@@ -155,7 +165,7 @@ class AppInstallTracker(
                 val appName = appVersionCache[packageName]?.let { cachedInfo ->
                     // Пытаемся получить имя из кэша
                     try {
-                        getAppName(packageName)
+                        dataSource.getAppName(packageName)
                     } catch (e: PackageManager.NameNotFoundException) {
                         null
                     }
@@ -176,25 +186,26 @@ class AppInstallTracker(
         lastKnownPackages = currentPackages
     }
 
-    private fun checkForAppUpdates(currentPackages: Set<String>) {
+    private suspend fun checkForAppUpdates(currentPackages: Set<String>) {
         currentPackages.forEach { packageName ->
-            try {
-                val currentInfo = getAppInfo(packageName) ?: return@forEach
-                val cachedInfo = appVersionCache[packageName]
+            dataSource.fetchAppInfo(packageName = packageName).collect { currentInfo ->
+                try {
+                    val cachedInfo = appVersionCache[packageName]
 
-                if (cachedInfo != null && currentInfo.versionCode > cachedInfo.versionCode) {
-                    // Обнаружено обновление
-                    notifyAppUpdated(packageName)
+                    if (cachedInfo != null && currentInfo.versionCode > cachedInfo.versionCode) {
+                        // Обнаружено обновление
+                        notifyAppUpdated(packageName)
 
-                    // Обновляем кэш
-                    appVersionCache[packageName] = AppVersionInfo(
-                        versionCode = currentInfo.versionCode,
-                        versionName = currentInfo.versionName,
-                        updateTime = currentInfo.updateTime
-                    )
+                        // Обновляем кэш
+                        appVersionCache[packageName] = AppVersionInfo(
+                            versionCode = currentInfo.versionCode,
+                            versionName = currentInfo.versionName,
+                            updateTime = currentInfo.updateTime
+                        )
+                    }
+                } catch (e: Exception) {
+                    // Игнорируем ошибки при проверке обновлений
                 }
-            } catch (e: Exception) {
-                // Игнорируем ошибки при проверке обновлений
             }
         }
     }
@@ -334,46 +345,6 @@ class AppInstallTracker(
             }
         } catch (e: Exception) {
             // Игнорируем ошибки инициализации
-        }
-    }
-
-    private data class AppInfo(
-        val packageName: String,
-        val appName: String,
-        val versionCode: Long,
-        val versionName: String?,
-        val updateTime: Long
-    )
-
-    private fun getAppInfo(packageName: String): AppInfo? {
-        return try {
-            val packageManager = context.packageManager
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-            val packageInfo = packageManager.getPackageInfo(packageName, 0)
-
-            AppInfo(
-                packageName = packageName,
-                appName = packageManager.getApplicationLabel(applicationInfo).toString(),
-                versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode
-                } else {
-                    packageInfo.versionCode.toLong()
-                },
-                versionName = packageInfo.versionName,
-                updateTime = packageInfo.lastUpdateTime
-            )
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun getAppName(packageName: String): String {
-        return try {
-            val packageManager = context.packageManager
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(applicationInfo).toString()
-        } catch (e: PackageManager.NameNotFoundException) {
-            packageName
         }
     }
 }

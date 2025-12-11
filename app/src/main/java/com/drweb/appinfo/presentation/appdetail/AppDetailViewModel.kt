@@ -7,16 +7,17 @@ import com.drweb.appinfo.core.common.WhileUiSubscribed
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
+import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
+import com.drweb.appinfo.presentation.appdetail.components.AppDetailEffect
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
-import com.drweb.appinfo.presentation.appdetail.components.NavigationState
-import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel
 import com.drweb.appinfo.presentation.component.UiText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -24,23 +25,19 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 
 class AppDetailViewModel(
     private val packageName: String,
     private val getAppDetailUseCase: GetAppDetailUseCase,
     private val calculateChecksumUseCase: CalculateChecksumUseCase,
-    private val appInstallHelper: AppInstallHelper
+    private val observeAppInstallUseCase: ObserveAppInstallUseCase
 ) : BaseViewModel() {
 
-    private val _effect: MutableStateFlow<NavigationState> = MutableStateFlow(
-        value = NavigationState.Idle
-    )
-
-    val effect = _effect.asStateFlow()
-
+    private val _effect: MutableSharedFlow<AppDetailEffect> = MutableSharedFlow()
+    val effect = _effect.asSharedFlow()
     private val _isLoading = MutableStateFlow(false)
-
     private val _isOpenButtonEnable = packageName != BuildConfig.APPLICATION_ID
 
     // SharedFlow для перезапуска (Из экрана с ошибкой)
@@ -48,9 +45,10 @@ class AppDetailViewModel(
 
     init {
         defaultViewModelScope.launch {
-            appInstallHelper.appEvents.collect { event ->
-                handleAppInstallEvent(event)
-            }
+            observeAppInstallUseCase()
+                .collect { event ->
+                    handleAppInstallEvent(event)
+                }
         }
     }
 
@@ -67,7 +65,9 @@ class AppDetailViewModel(
                         calculateChecksum(appInfo.apkPath)
                     }
                 } catch (e: Exception) {
-                    emit(Async.Error(UiText.StringResource(R.string.loading_tasks_error)))
+                    if (e !is CancellationException) {
+                        emit(Async.Error(UiText.StringResource(R.string.loading_tasks_error)))
+                    }
                 }
             }
         }
@@ -114,7 +114,7 @@ class AppDetailViewModel(
                 if (event.packageName == packageName) {
                     loadAppDetail(packageName = packageName)
                 }
-                println("App installed: ${event.appName}")
+                Timber.d("App installed: ${event.appName}")
             }
 
             is AppInstallEvent.Updated -> {
@@ -122,18 +122,20 @@ class AppDetailViewModel(
                     loadAppDetail(packageName = packageName)
                     // TODO: формировать AppDetailState тут?
                 }
-                println("App updated: ${event.appName}")
+                Timber.d("App updated: ${event.appName}")
             }
 
             is AppInstallEvent.Uninstalled -> {
                 if (event.packageName == packageName) {
-                    _effect.value = NavigationState.NavigationBack
+                    defaultViewModelScope.launch {
+                        _effect.emit(AppDetailEffect.AppWasRemowed)
+                    }
                 }
-                println("App uninstalled: ${event.appName ?: event.packageName}")
+                Timber.d("App uninstalled: ${event.appName ?: event.packageName}")
             }
 
             is AppInstallEvent.Error -> {
-                println("Error: ${event.throwable.message}")
+                Timber.d("Error: ${event.throwable.message}")
             }
 
         }

@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">AppInfo DrWeb</string>
     <string name="repeated">Повторить</string>
+    <string name="next">Продолжить</string>
+    <string name="app_deleted">Приложение %s было удалено</string>
     <string name="installed_app_title">Установленные приложения</string>
     <string name="app_not_found">Приложения не найдены</string>
     <string name="unknown_error">Неизвестная ошибка</string>

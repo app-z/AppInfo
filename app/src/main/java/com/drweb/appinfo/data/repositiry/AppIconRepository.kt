@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,34 +26,15 @@ class AppIconRepository(
         }
     }
 
-    suspend fun getAppIconCached(
-        packageName: String,
-        size: Int = 128
-    ): Bitmap? = withContext(Dispatchers.IO) {
-        // Можно добавить кэширование здесь
-        getAppIcon(packageName)?.let { bitmap ->
-            if (bitmap.width != size || bitmap.height != size) {
-                Bitmap.createScaledBitmap(bitmap, size, size, true)
-            } else {
-                bitmap
-            }
-        }
-    }
-
-    private fun Drawable.toBitmap(): Bitmap {
-        val bitmap = if (intrinsicWidth <= 0 || intrinsicHeight <= 0) {
-            Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-        } else {
-            Bitmap.createBitmap(
-                intrinsicWidth,
-                intrinsicHeight,
-                Bitmap.Config.ARGB_8888
-            )
-        }
-
+    fun Drawable.toBitmap(targetSize: Int = 128): Bitmap {
+        // Создаем Bitmap нужного размера
+        val bitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        setBounds(0, 0, canvas.width, canvas.height)
+
+        // Устанавливаем границы и рисуем
+        setBounds(0, 0, targetSize, targetSize)
         draw(canvas)
+
         return bitmap
     }
 }

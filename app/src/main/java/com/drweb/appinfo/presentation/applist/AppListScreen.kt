@@ -1,7 +1,6 @@
 package com.drweb.appinfo.presentation.applist
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.AnimationConstants
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +12,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +27,6 @@ import com.drweb.appinfo.presentation.applist.components.AppListItem
 import com.drweb.appinfo.presentation.component.ErrorScreen
 import com.drweb.appinfo.presentation.component.LoadingIndicator
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +41,14 @@ fun AppListScreen(
 
     // ID выделяемого элемента
     var highlightedItemId by remember { mutableStateOf<String?>(null) }
+
+    // Очистка при уходе с экрана
+    DisposableEffect(Unit) {
+        onDispose {
+            // Очищаем цель скролла
+            viewModel.clearScrollTarget()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -79,13 +87,14 @@ fun AppListScreen(
                             )
                         }
                     }
-                    if (state.scrollToItem.isNotEmpty()) {
-                        val index = state.apps.indexOfFirst { it.packageName == state.scrollToItem }
-                        if (index != -1) {
-                            coroutineScope.launch {
+                    LaunchedEffect(state.scrollToItem) {
+                        if (state.scrollToItem.isNotEmpty()) {
+                            val index =
+                                state.apps.indexOfFirst { it.packageName == state.scrollToItem }
+                            if (index != -1) {
                                 listState.animateScrollToItem(index = index)
                                 highlightedItemId = state.scrollToItem
-                                delay(750)
+                                delay(AnimationConstants.DefaultDurationMillis * 2L)
                                 highlightedItemId = null
                             }
                         }

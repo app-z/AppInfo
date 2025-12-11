@@ -23,6 +23,8 @@ class AppRepositoryImpl(
         return dataSource.fetchAppInfo(packageName)
     }
 
+    override fun getAppInfo(packageName: String): Result<AppInfo> = dataSource.getAppInfo(packageName)
+
     override fun fetchChecksum(apkPath: String): Flow<String> = flow {
         emit(calculateChecksum(apkPath = apkPath).getOrThrow())
     }

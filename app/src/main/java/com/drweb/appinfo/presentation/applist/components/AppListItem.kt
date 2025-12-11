@@ -14,7 +14,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.drweb.appinfo.R
 import com.drweb.appinfo.domain.model.AppInfo
 import com.drweb.appinfo.presentation.applist.AppListViewModel
-import timber.log.Timber
 
 @Composable
 fun AppListItem(
@@ -40,10 +38,6 @@ fun AppListItem(
         targetValue = if (isHighlighted != null) 0.3f else 0f,
         animationSpec = tween(300)
     )
-
-    SideEffect {
-        Timber.d("$isHighlighted = ${app.packageName}")
-    }
 
     Card(
         modifier = modifier
@@ -71,7 +65,6 @@ fun AppListItem(
                 packageName = app.packageName,
                 viewModel = viewModel,
                 modifier = Modifier.size(48.dp),
-                onIconLoaded = { }
             )
             Column(
                 modifier = Modifier

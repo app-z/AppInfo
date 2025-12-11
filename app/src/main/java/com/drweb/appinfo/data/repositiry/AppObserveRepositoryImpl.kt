@@ -1,26 +1,22 @@
 package com.drweb.appinfo.data.repositiry
 
-import android.content.Context
-import android.content.pm.PackageManager
-import com.drweb.appinfo.domain.model.AppChangeInfo
 import com.drweb.appinfo.domain.model.AppInstallEvent
-import com.drweb.appinfo.domain.repository.AppInstallRepository
+import com.drweb.appinfo.domain.repository.AppObserveRepository
+import com.drweb.appinfo.domain.repository.AppRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-class AppInstallRepositoryImpl(
-    private val context: Context,
+class AppObserveRepositoryImpl(
+    private val appRepository: AppRepository,
     private val appInstallTracker: AppInstallTracker
-) : AppInstallRepository {
-
-    private val packageManager: PackageManager
-        get() = context.packageManager
+) : AppObserveRepository {
 
     override fun observeAppInstallEvents(): Flow<AppInstallEvent> = callbackFlow {
         val listener = object : AppInstallTracker.Listener {
             override fun onAppInstalled(packageName: String, appName: String) {
-                val appInfo = getAppInfo(packageName)
+
+                val appInfo = appRepository.getAppInfo(packageName = packageName).getOrNull()
                 val event = AppInstallEvent.Installed(
                     packageName = packageName,
                     appName = appName,
@@ -30,11 +26,11 @@ class AppInstallRepositoryImpl(
             }
 
             override fun onAppUpdated(packageName: String) {
-                val appInfo = getAppInfo(packageName)
+                val appInfo = appRepository.getAppInfo(packageName = packageName).getOrNull()
                 val event = AppInstallEvent.Updated(
                     packageName = packageName,
-                    appName = appInfo?.appName ?: packageName,
-                    oldVersion = null, // Можно сохранять предыдущую версию
+                    appName = appInfo?.name ?: "Unknown",
+                    oldVersion = null,
                     newVersion = appInfo?.versionName ?: "Unknown"
                 )
                 trySend(event)
@@ -57,29 +53,6 @@ class AppInstallRepositoryImpl(
 
         awaitClose {
             stopTracking(listener)
-        }
-    }
-
-    override fun getAppInfo(packageName: String): AppChangeInfo? {
-        return try {
-            val packageInfo = packageManager.getPackageInfo(packageName, 0)
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-
-            AppChangeInfo(
-                packageName = packageName,
-                appName = packageManager.getApplicationLabel(applicationInfo).toString(),
-                isSystemApp = applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0,
-                installTime = packageInfo.firstInstallTime,
-                updateTime = packageInfo.lastUpdateTime,
-                versionName = packageInfo.versionName,
-                versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode
-                } else {
-                    packageInfo.versionCode.toLong()
-                }
-            )
-        } catch (e: PackageManager.NameNotFoundException) {
-            null
         }
     }
 

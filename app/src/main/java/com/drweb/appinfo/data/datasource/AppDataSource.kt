@@ -6,4 +6,6 @@ import kotlinx.coroutines.flow.Flow
 interface AppDataSource {
     fun fetchInstalledAppsFlow(): Flow<List<AppInfo>>
     fun fetchAppInfo(packageName: String): Flow<AppInfo>
+    fun getAppInfo(packageName: String): Result<AppInfo>
+    fun getAppName(packageName: String): String
 }

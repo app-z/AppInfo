@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -26,11 +25,10 @@ fun AppIcon(
     packageName: String,
     viewModel: AppListViewModel,
     modifier: Modifier = Modifier,
-    size: Int = 48,
-    onIconLoaded: (() -> Unit)? = null
+    size: Int = 48
 ) {
     var iconBitmap by remember(packageName) { mutableStateOf<Bitmap?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
     val iconFlow = viewModel.getIconFlow(packageName)
     val scope = rememberCoroutineScope()
 
@@ -40,10 +38,10 @@ fun AppIcon(
         val cachedIcon = viewModel.getIconFromCache(packageName)
         if (cachedIcon != null) {
             iconBitmap = cachedIcon
-            onIconLoaded?.invoke()
             isLoading = false
         } else {
             scope.launch {
+//                delay(1500)
                 iconFlow.collect {
                     iconBitmap = it
                     isLoading = false
@@ -63,9 +61,10 @@ fun AppIcon(
         modifier = modifier.size(size.dp),
         contentAlignment = Alignment.Center
     ) {
+
         if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(size.dp / 2)
+            LoadingIcon(
+                size = 36
             )
         }
 
