@@ -26,7 +26,8 @@ sealed class AppInstallEvent {
 
     data class Error(val throwable: Throwable) : AppInstallEvent()
 
-    object Idle
+    object JustReloadForNewVersion: AppInstallEvent()
+
 }
 
 // domain/model/AppChangeInfo.kt

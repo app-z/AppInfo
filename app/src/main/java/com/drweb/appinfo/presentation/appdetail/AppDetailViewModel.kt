@@ -10,6 +10,7 @@ import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
+import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
 import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
 import com.drweb.appinfo.presentation.appdetail.components.NavigationState
 import com.drweb.appinfo.presentation.component.AppInstallHelper
@@ -36,7 +37,8 @@ class AppDetailViewModel(
     private val packageName: String,
     private val getAppDetailUseCase: GetAppDetailUseCase,
     private val calculateChecksumUseCase: CalculateChecksumUseCase,
-    private val observeAppInstallUseCase: ObserveAppInstallUseCase
+    private val observeAppInstallUseCase: ObserveAppInstallUseCase,
+    private val observeContentAppInstall12UseCase: ObserveContentAppInstall12UseCase
 ) : BaseViewModel() {
 
     private val _effect: MutableStateFlow<NavigationState> = MutableStateFlow(
@@ -55,7 +57,8 @@ class AppDetailViewModel(
     init {
         AppInstallHelper(
             scope = defaultViewModelScope,
-            observeAppInstallUseCase = observeAppInstallUseCase
+            observeAppInstallUseCase = observeAppInstallUseCase,
+            observeContentAppInstall12UseCase = observeContentAppInstall12UseCase
         ).initialize {
             handleAppInstallEvent(it)
         }
@@ -141,6 +144,10 @@ class AppDetailViewModel(
 
             is AppInstallEvent.Error -> {
                 println("Error: ${event.throwable.message}")
+            }
+
+            AppInstallEvent.JustReloadForNewVersion -> {
+                loadAppDetail(packageName = packageName)
             }
         }
     }

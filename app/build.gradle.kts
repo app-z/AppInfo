@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.androidx.junit.ktx)
     implementation(libs.androidx.ui.test.junit4)
 
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // Тестирование
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.6")

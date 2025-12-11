@@ -1,6 +1,7 @@
 package com.drweb.appinfo.presentation.applist
 
 import android.graphics.Bitmap
+import android.os.Build
 import androidx.lifecycle.viewModelScope
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.Async
@@ -10,6 +11,7 @@ import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.GetAppIconUseCase
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
 import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
+import com.drweb.appinfo.domain.usecase.ObserveContentAppInstall12UseCase
 import com.drweb.appinfo.presentation.applist.components.AppListState
 import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel
@@ -32,7 +34,8 @@ import kotlinx.coroutines.launch
 class AppListViewModel(
     private val getAppIconUseCase: GetAppIconUseCase,
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
-    private val observeAppInstallUseCase: ObserveAppInstallUseCase
+    private val observeAppInstallUseCase: ObserveAppInstallUseCase,
+    private val observeContentAppInstall12UseCase: ObserveContentAppInstall12UseCase
 ) : BaseViewModel() {
 
     private val _icons = mutableMapOf<String, Bitmap?>()
@@ -97,7 +100,8 @@ class AppListViewModel(
     init {
         AppInstallHelper(
             scope = defaultViewModelScope,
-            observeAppInstallUseCase = observeAppInstallUseCase
+            observeAppInstallUseCase = observeAppInstallUseCase,
+            observeContentAppInstall12UseCase = observeContentAppInstall12UseCase
         ).initialize {
             handleAppInstallEvent(it)
         }
@@ -122,6 +126,10 @@ class AppListViewModel(
 
             is AppInstallEvent.Error -> {
                 println("Error: ${event.throwable.message}")
+            }
+
+            AppInstallEvent.JustReloadForNewVersion -> {
+                loadApps()
             }
         }
     }

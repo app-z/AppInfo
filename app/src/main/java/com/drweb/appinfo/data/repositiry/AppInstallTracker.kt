@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 
-class AppInstallTracker(
+open class AppInstallTracker(
     private val context: Context
 ) {
 
@@ -25,7 +25,7 @@ class AppInstallTracker(
         this.listener = listener
     }
 
-    fun startTracking() {
+    open fun startTracking() {
         if (broadcastReceiver != null) return
 
         broadcastReceiver = object : BroadcastReceiver() {

@@ -1,5 +1,6 @@
 package com.drweb.appinfo.domain.repository
 
+import com.drweb.appinfo.data.repositiry.AppInstallTracker
 import com.drweb.appinfo.domain.model.AppChangeInfo
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import kotlinx.coroutines.flow.Flow
@@ -23,10 +24,10 @@ interface AppInstallRepository {
     /**
      * Начинает отслеживание
      */
-    fun startTracking()
+    fun startTracking(listener: AppInstallTracker.Listener)
 
     /**
      * Останавливает отслеживание
      */
-    fun stopTracking()
+    fun stopTracking(listener: AppInstallTracker.Listener?)
 }
