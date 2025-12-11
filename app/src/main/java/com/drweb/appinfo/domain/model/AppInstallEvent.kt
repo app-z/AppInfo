@@ -25,6 +25,4 @@ sealed class AppInstallEvent {
     ) : AppInstallEvent()
 
     data class Error(val throwable: Throwable) : AppInstallEvent()
-
-    object JustReloadForNewVersion: AppInstallEvent()
 }

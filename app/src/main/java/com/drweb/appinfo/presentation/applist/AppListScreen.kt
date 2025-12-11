@@ -1,5 +1,7 @@
 package com.drweb.appinfo.presentation.applist
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,6 +25,8 @@ import com.drweb.appinfo.R
 import com.drweb.appinfo.presentation.applist.components.AppListItem
 import com.drweb.appinfo.presentation.component.ErrorScreen
 import com.drweb.appinfo.presentation.component.LoadingIndicator
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,10 +34,13 @@ import org.koin.androidx.compose.koinViewModel
 fun AppListScreen(
     onAppClick: (String) -> Unit,
 ) {
-
     val viewModel: AppListViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // ID выделяемого элемента
+    var highlightedItemId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -50,7 +59,7 @@ fun AppListScreen(
 
                 state.error != null -> ErrorScreen(
                     message = state.error!!.asString(),
-                    onRetry = { viewModel.loadApps() }
+                    onRetry = { viewModel.loadApps("") }
                 )
 
                 else -> {
@@ -59,11 +68,26 @@ fun AppListScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(state.apps, key = { it.packageName }) { app ->
+
+                            val isHighlighted = highlightedItemId == app.packageName
+
                             AppListItem(
                                 app = app,
                                 viewModel = viewModel,
+                                isHighlighted = isHighlighted,
                                 onClick = { onAppClick(app.packageName) }
                             )
+                        }
+                    }
+                    if (state.scrollToItem.isNotEmpty()) {
+                        val index = state.apps.indexOfFirst { it.packageName == state.scrollToItem }
+                        if (index != -1) {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index = index)
+                                highlightedItemId = state.scrollToItem
+                                delay(750)
+                                highlightedItemId = null
+                            }
                         }
                     }
                 }

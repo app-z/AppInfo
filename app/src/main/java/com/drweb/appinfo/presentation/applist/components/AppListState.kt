@@ -5,6 +5,7 @@ import com.drweb.appinfo.presentation.component.UiText
 
 data class AppListState(
     val apps: List<AppInfo> = emptyList(),
+    val scrollToItem : String = "",
     val isLoading: Boolean = false,
     val error: UiText? = null
 )

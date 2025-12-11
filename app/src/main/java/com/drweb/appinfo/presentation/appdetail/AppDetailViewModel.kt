@@ -136,9 +136,6 @@ class AppDetailViewModel(
                 println("Error: ${event.throwable.message}")
             }
 
-            AppInstallEvent.JustReloadForNewVersion -> {
-                loadAppDetail(packageName = packageName)
-            }
         }
     }
 
@@ -158,9 +155,5 @@ class AppDetailViewModel(
             _refreshTrigger.emit(Unit)
             _isLoading.value = false
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
     }
 }

@@ -1,7 +1,6 @@
 package com.drweb.appinfo.presentation.applist
 
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.lifecycle.viewModelScope
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.Async
@@ -10,7 +9,6 @@ import com.drweb.appinfo.domain.model.AppInfo
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.GetAppIconUseCase
 import com.drweb.appinfo.domain.usecase.GetInstalledAppsUseCase
-import com.drweb.appinfo.domain.usecase.ObserveAppInstallUseCase
 import com.drweb.appinfo.presentation.applist.components.AppListState
 import com.drweb.appinfo.presentation.component.AppInstallHelper
 import com.drweb.appinfo.presentation.component.BaseViewModel
@@ -43,6 +41,8 @@ class AppListViewModel(
 
     private val _isLoading = MutableStateFlow(false)
 
+    private val _scrollToItem = MutableStateFlow("")
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _appList = _refreshTrigger
         .onStart { emit(Unit) }
@@ -62,8 +62,8 @@ class AppListViewModel(
         .distinctUntilChanged()
 
     val uiState: StateFlow<AppListState> = combine(
-        _isLoading, _appList
-    ) { isLoading, appList ->
+        _isLoading, _appList, _scrollToItem
+    ) { isLoading, appList, scrollToItem ->
 
         when (appList) {
             Async.Loading -> {
@@ -84,6 +84,7 @@ class AppListViewModel(
 
                 AppListState(
                     apps = appList.data,
+                    scrollToItem = scrollToItem,
                     isLoading = false,
                     error = null
                 )
@@ -106,17 +107,17 @@ class AppListViewModel(
     private fun handleAppInstallEvent(event: AppInstallEvent) {
         when (event) {
             is AppInstallEvent.Installed -> {
-                loadApps()
+                loadApps(event.packageName)
                 println("App installed: ${event.appName}")
             }
 
             is AppInstallEvent.Updated -> {
-                loadApps()
+                loadApps(event.packageName)
                 println("App updated: ${event.appName}")
             }
 
             is AppInstallEvent.Uninstalled -> {
-                loadApps()
+                loadApps(event.packageName)
                 println("App uninstalled: ${event.appName ?: event.packageName}")
             }
 
@@ -124,9 +125,6 @@ class AppListViewModel(
                 println("Error: ${event.throwable.message}")
             }
 
-            AppInstallEvent.JustReloadForNewVersion -> {
-                loadApps()
-            }
         }
     }
 
@@ -187,12 +185,13 @@ class AppListViewModel(
         return _icons[packageName]
     }
 
-    fun loadApps() {
+    fun loadApps(packageName: String) {
         defaultViewModelScope.launch {
             _isLoading.value = true
             // Отправляем событие для перезагрузки
             _refreshTrigger.emit(Unit)
             _isLoading.value = false
+            _scrollToItem.emit(packageName)
         }
     }
 }
