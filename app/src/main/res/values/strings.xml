@@ -12,4 +12,7 @@
     <string name="loading_tasks_error">Ошибка получения данных</string>
     <string name="calculating_check_sum_error">Ошибка вычисления контрольной суммы</string>
 
+    <string name="network_error">Ошибка операции ввода-вывода</string>
+    <string name="permission_error">Ошибка доступа</string>
+
 </resources>

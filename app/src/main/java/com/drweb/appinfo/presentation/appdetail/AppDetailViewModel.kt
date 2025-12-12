@@ -4,6 +4,7 @@ import com.drweb.appinfo.BuildConfig
 import com.drweb.appinfo.R
 import com.drweb.appinfo.core.common.Async
 import com.drweb.appinfo.core.common.WhileUiSubscribed
+import com.drweb.appinfo.domain.model.AppInfo
 import com.drweb.appinfo.domain.model.AppInstallEvent
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
 import com.drweb.appinfo.domain.usecase.GetAppDetailUseCase
@@ -13,19 +14,22 @@ import com.drweb.appinfo.presentation.appdetail.components.AppDetailState
 import com.drweb.appinfo.presentation.component.BaseViewModel
 import com.drweb.appinfo.presentation.component.UiText
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.IOException
 
 
 class AppDetailViewModel(
@@ -55,24 +59,48 @@ class AppDetailViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _appDetail = _refreshTrigger
         .onStart { emit(Unit) }
-        .flatMapLatest {
-            flow {
-                emit(Async.Loading)
-                try {
-                    val result = getAppDetailUseCase(packageName)
-                    result.collect { appInfo ->
-                        emit(Async.Success(appInfo))
-                        calculateChecksum(appInfo.apkPath)
-                    }
-                } catch (e: Exception) {
-                    if (e !is CancellationException) {
-                        emit(Async.Error(UiText.StringResource(R.string.loading_tasks_error)))
-                    }
-                }
-            }
-        }
-        .distinctUntilChanged()
+        .flatMapLatest { loadAppDetail() }
+        .stateIn(
+            scope = defaultViewModelScope,
+            started = WhileUiSubscribed,
+            initialValue = Async.Loading
+        )
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun loadAppDetail(): Flow<Async<AppInfo>> = flow {
+        emit(Async.Loading)
+        try {
+            val result = getAppDetailUseCase(packageName)
+            result.collect { appInfo ->
+                emit(Async.Success(appInfo))
+                calculateChecksumSafely(appInfo)
+            }
+        } catch (e: Exception) {
+            handleAppDetailError(e)
+        }
+    }
+
+    private suspend fun calculateChecksumSafely(appInfo: AppInfo) {
+        if (appInfo.apkPath.isEmpty()) return
+
+        try {
+            withContext(Dispatchers.IO) {
+                calculateChecksum(appInfo.apkPath)
+            }
+        } catch (e: Exception) {
+            // Логируем, но не прерываем основной поток
+            Timber.w("Failed to calculate checksum $e")
+        }
+    }
+
+    private fun handleAppDetailError(e: Exception): Async<AppInfo> {
+        return when (e) {
+            is CancellationException -> throw e
+            is IOException -> Async.Error(UiText.StringResource(R.string.network_error))
+            is SecurityException -> Async.Error(UiText.StringResource(R.string.permission_error))
+            else -> Async.Error(UiText.StringResource(R.string.unknown_error))
+        }
+    }
     private val _appCheckSum = MutableStateFlow<String>("")
 
     val uiState: StateFlow<AppDetailState> = combine(
