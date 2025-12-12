@@ -9,11 +9,13 @@ import kotlinx.coroutines.flow.callbackFlow
 
 class AppObserveRepositoryImpl(
     private val appRepository: AppRepository,
-    private val appInstallTracker: AppInstallTracker
+    trackingStrategyFactory: TrackingStrategyFactory
 ) : AppObserveRepository {
 
+    val appInstallTracker = trackingStrategyFactory.createStrategy()
+
     override fun observeAppInstallEvents(): Flow<AppInstallEvent> = callbackFlow {
-        val listener = object : AppInstallTracker.Listener {
+        val listener = object : BaseTracker.Listener {
             override fun onAppInstalled(packageName: String, appName: String) {
 
                 val appInfo = appRepository.getAppInfo(packageName = packageName).getOrNull()
@@ -56,12 +58,12 @@ class AppObserveRepositoryImpl(
         }
     }
 
-    override fun startTracking(listener: AppInstallTracker.Listener) {
+    override fun startTracking(listener: BaseTracker.Listener) {
         appInstallTracker.setListener(listener)
         appInstallTracker.startTracking()
     }
 
-    override fun stopTracking(listener: AppInstallTracker.Listener?) {
+    override fun stopTracking(listener: BaseTracker.Listener?) {
         appInstallTracker.removeListener(listener)
         appInstallTracker.stopTracking()
     }

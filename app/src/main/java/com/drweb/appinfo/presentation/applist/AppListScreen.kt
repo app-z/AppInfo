@@ -37,7 +37,6 @@ fun AppListScreen(
     val viewModel: AppListViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
 
     // ID выделяемого элемента
     var highlightedItemId by remember { mutableStateOf<String?>(null) }

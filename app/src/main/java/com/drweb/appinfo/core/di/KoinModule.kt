@@ -4,8 +4,8 @@ import com.drweb.appinfo.data.datasource.AppDataSource
 import com.drweb.appinfo.data.local.AppLocalDataSource
 import com.drweb.appinfo.data.repositiry.AppIconRepository
 import com.drweb.appinfo.data.repositiry.AppObserveRepositoryImpl
-import com.drweb.appinfo.data.repositiry.AppInstallTracker
 import com.drweb.appinfo.data.repositiry.AppRepositoryImpl
+import com.drweb.appinfo.data.repositiry.TrackingStrategyFactory
 import com.drweb.appinfo.domain.repository.AppObserveRepository
 import com.drweb.appinfo.domain.repository.AppRepository
 import com.drweb.appinfo.domain.usecase.CalculateChecksumUseCase
@@ -31,8 +31,10 @@ val appModule = module {
             get()
         )
     }
+
     single { AppIconRepository(androidContext()) }
-    single { AppInstallTracker(androidContext(), get()) }
+
+    single { TrackingStrategyFactory(androidContext(), get()) }
 
     // Use Cases
     factory { GetInstalledAppsUseCase(get()) }
