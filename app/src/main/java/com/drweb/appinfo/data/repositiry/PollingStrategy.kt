@@ -20,7 +20,7 @@ class PollingStrategy(
 
     // Для Android 13+ polling
     private var pollingJob: Job? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var lastKnownPackages: Set<String> = emptySet()
     private val pollingInterval = 3000L // 3 секунды
 

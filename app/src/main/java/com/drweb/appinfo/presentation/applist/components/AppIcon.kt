@@ -30,7 +30,6 @@ fun AppIcon(
     var iconBitmap by remember(packageName) { mutableStateOf<Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val iconFlow = viewModel.getIconFlow(packageName)
-    val scope = rememberCoroutineScope()
 
     // Проверяем кэш при первом вызове
     LaunchedEffect(packageName) {
@@ -40,20 +39,11 @@ fun AppIcon(
             iconBitmap = cachedIcon
             isLoading = false
         } else {
-            scope.launch {
 //                delay(1500)
-                iconFlow.collect {
-                    iconBitmap = it
-                    isLoading = false
-                }
+            iconFlow.collect {
+                iconBitmap = it
+                isLoading = false
             }
-        }
-    }
-
-    // Отменяем загрузку когда Composable покидает композицию
-    DisposableEffect(packageName) {
-        onDispose {
-            scope.cancel()
         }
     }
 
