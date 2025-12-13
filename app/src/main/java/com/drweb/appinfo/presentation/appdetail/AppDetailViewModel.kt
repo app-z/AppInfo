@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,20 +43,20 @@ class AppDetailViewModel(
 
     private val _effect: MutableSharedFlow<AppDetailEffect> = MutableSharedFlow()
     val effect = _effect.asSharedFlow()
-    private val _isLoading = MutableStateFlow(false)
     private val _isOpenButtonEnable = packageName != BuildConfig.APPLICATION_ID
-
-    // SharedFlow для перезапуска (Из экрана с ошибкой)
+    private val _appCheckSum = MutableStateFlow<String>("")
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
+    private val _externalAppUpdateEvents = observeAppInstallUseCase()
+    private val _resetAppUpdateEvent = MutableSharedFlow<Unit>(replay = 1)
 
-    init {
-        defaultViewModelScope.launch {
-            observeAppInstallUseCase()
-                .collect { event ->
-                    handleAppInstallEvent(event)
-                }
-        }
-    }
+    private val _appUpdateEvent = merge(
+        _externalAppUpdateEvents.map { it },
+        _resetAppUpdateEvent.map { null }
+    ).stateIn(
+        scope = defaultViewModelScope,
+        started = WhileUiSubscribed,
+        initialValue = null
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _appDetail = _refreshTrigger
@@ -101,11 +103,10 @@ class AppDetailViewModel(
             else -> Async.Error(UiText.StringResource(R.string.unknown_error))
         }
     }
-    private val _appCheckSum = MutableStateFlow<String>("")
 
     val uiState: StateFlow<AppDetailState> = combine(
-        _isLoading, _appDetail, _appCheckSum
-    ) { isLoading, appDetail, appCheckSum ->
+        _appDetail, _appCheckSum, _appUpdateEvent
+    ) { appDetail, appCheckSum, appUpdateEvent ->
 
         when (appDetail) {
             Async.Loading -> {
@@ -120,6 +121,14 @@ class AppDetailViewModel(
             }
 
             is Async.Success -> {
+
+                if (appUpdateEvent != null) {
+                    handleAppInstallEvent(appUpdateEvent).also {
+                        // Сбрасываем событие
+                        _resetAppUpdateEvent.emit(Unit)
+                    }
+                }
+
                 AppDetailState(
                     appInfo = appDetail.data,
                     isOpenButtonEnable = _isOpenButtonEnable,
@@ -180,10 +189,8 @@ class AppDetailViewModel(
 
     fun loadAppDetail(packageName: String) {
         defaultViewModelScope.launch {
-            _isLoading.value = true
             // Отправляем событие для перезагрузки
             _refreshTrigger.emit(Unit)
-            _isLoading.value = false
         }
     }
 }

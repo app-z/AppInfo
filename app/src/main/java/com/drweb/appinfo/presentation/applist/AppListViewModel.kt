@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -36,20 +38,44 @@ class AppListViewModel(
 ) : BaseViewModel() {
     private val _icons = mutableMapOf<String, Bitmap?>()
     private val _loadingIcons = mutableMapOf<String, Boolean>()
-    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
-    private val _isLoading = MutableStateFlow(false)
-    private val _scrollToItem = MutableStateFlow<String>("")
+    private val _refreshTrigger = MutableSharedFlow<String>(replay = 1)
+//    private val _isLoading = MutableStateFlow(true)
+    private val _scrollToItemMutable = MutableStateFlow<String>("")
+
+    private val _scrollToItem = _scrollToItemMutable
+        .stateIn(
+            scope = defaultViewModelScope,
+            started = WhileUiSubscribed,
+            initialValue = ""
+        )
+
+    private val _externalAppUpdateEvents = observeAppInstallUseCase()
+    private val _resetAppUpdateEvent = MutableSharedFlow<Unit>(replay = 1)
+
+    private val _appUpdateEvent = merge(
+        _externalAppUpdateEvents.map { it },
+        _resetAppUpdateEvent.map { null }
+    ).stateIn(
+        scope = defaultViewModelScope,
+        started = WhileUiSubscribed,
+        initialValue = null
+    )
+
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _appList = _refreshTrigger
-        .onStart { emit(Unit) }
-        .flatMapLatest {
+        .onStart {
+            emit("")
+        }
+        .flatMapLatest { scrollItem ->
             flow {
-                emit(Async.Loading)
                 try {
                     val result = getInstalledAppsUseCase()
-                    result.collect { appInfo ->
-                        emit(Async.Success(appInfo))
+                    result.collect { appList ->
+                        emit(Async.Success(appList))
+                        _scrollToItemMutable.emit(scrollItem)
+                        // Предзагрузка первых N иконок
+                        preloadIcons(appList.take(10))
                     }
                 } catch (e: Exception) {
                     Timber.e(e)
@@ -62,10 +88,10 @@ class AppListViewModel(
         .distinctUntilChanged()
 
     val uiState: StateFlow<AppListState> = combine(
-        _isLoading,
         _appList,
-        _scrollToItem
-    ) { isLoading, appList, scrollToItem ->
+        _scrollToItem,
+        _appUpdateEvent
+    ) { appList, scrollToItem, appUpdateEvent ->
 
         when (appList) {
             Async.Loading -> {
@@ -81,8 +107,12 @@ class AppListViewModel(
 
             is Async.Success -> {
 
-                // Предзагрузка первых N иконок
-                preloadIcons(appList.data.take(10))
+                if (appUpdateEvent != null) {
+                    handleAppInstallEvent(appUpdateEvent).also {
+                        // Сбрасываем событие
+                        _resetAppUpdateEvent.emit(Unit)
+                    }
+                }
 
                 AppListState(
                     apps = appList.data,
@@ -97,15 +127,6 @@ class AppListViewModel(
         started = WhileUiSubscribed,
         initialValue = AppListState(isLoading = true)
     )
-
-    init {
-        defaultViewModelScope.launch {
-            observeAppInstallUseCase()
-                .collect { event ->
-                    handleAppInstallEvent(event)
-                }
-        }
-    }
 
     private fun handleAppInstallEvent(event: AppInstallEvent) {
         when (event) {
@@ -190,20 +211,15 @@ class AppListViewModel(
 
     fun loadApps(packageName: String) {
         defaultViewModelScope.launch {
-            _isLoading.value = true
             // Отправляем событие для перезагрузки
-            _refreshTrigger.emit(Unit)
-            _isLoading.value = false
-            if (packageName.isNotEmpty()) {
-                _scrollToItem.emit(packageName)
-            }
+            _refreshTrigger.emit(packageName)
         }
     }
 
     // Очистка цели скролла
     fun clearScrollTarget() {
         defaultViewModelScope.launch {
-            _scrollToItem.emit("")
+            _scrollToItemMutable.emit("")
         }
     }
 }

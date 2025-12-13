@@ -89,7 +89,9 @@ fun AppListScreen(
                     LaunchedEffect(state.scrollToItem) {
                         if (state.scrollToItem.isNotEmpty()) {
                             val index =
-                                state.apps.indexOfFirst { it.packageName == state.scrollToItem }
+                                state.apps.indexOfFirst {
+                                    it.packageName == state.scrollToItem
+                                }
                             if (index != -1) {
                                 listState.animateScrollToItem(index = index)
                                 highlightedItemId = state.scrollToItem

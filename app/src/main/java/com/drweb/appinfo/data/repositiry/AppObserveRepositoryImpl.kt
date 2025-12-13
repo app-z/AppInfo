@@ -12,7 +12,7 @@ class AppObserveRepositoryImpl(
     trackingStrategyFactory: TrackingStrategyFactory
 ) : AppObserveRepository {
 
-    val appInstallTracker = trackingStrategyFactory.createStrategy()
+    private val appInstallTracker = trackingStrategyFactory.createStrategy()
 
     override fun observeAppInstallEvents(): Flow<AppInstallEvent> = callbackFlow {
         val listener = object : BaseTracker.Listener {
